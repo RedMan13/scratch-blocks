@@ -320,6 +320,8 @@ Blockly.Connection.prototype.canConnectWithReason_ = function(target) {
     target.targetConnection.sourceBlock_ && 
     (Blockly.scratchBlocksUtils.isShadowArgumentReporter(target.targetConnection.sourceBlock_) || target.targetConnection.sourceBlock_.canDragDuplicate()))) {
     return Blockly.Connection.REASON_ARGUMENT_GENERATOR
+  } else if (blockA.type.startsWith('procedures_definition') && blockB.type != 'procedures_prototype') {
+    return Blockly.Connection.REASON_WRONG_TYPE;
   }
   return Blockly.Connection.CAN_CONNECT;
 };
