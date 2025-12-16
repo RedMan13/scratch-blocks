@@ -20,6 +20,7 @@ goog.require('Blockly.Colours');
  * @typedef {Object} BlockIndex
  * @prop {string} type
  * @prop {{ [key: string]: string }} types
+ * @prop {{ [key: string]: { type: string, field: string } }} shadows
  * @prop {(string|InlineArgument)[]} words
  * @prop {boolean} isReporter
  */
@@ -285,6 +286,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                 matches.push({
                     type: block.type,
                     types: block.types,
+                    shadows: block.shadows,
                     args: Object.fromEntries(Object.keys(args).map((k,i) => [k, args[k][indicies[i]]]))
                 })
             }
@@ -298,16 +300,16 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
 Blockly.BlockPicker.generateFromMatch = function(match) {
     const block = document.createElement('block');
     block.setAttribute('type', match.type);
-    for (const name in match.args) {
+    for (const name in match.types) {
         const input = document.createElement(match.types[name] === 'input' ? 'value' : 'field');
         input.setAttribute('name', name);
         block.appendChild(input);
-        if (match.args[name].shadow) {
+        if (match.shadows[name]) {
             const shadow = document.createElement('shadow');
-            shadow.setAttribute('type', match.args[name].type);
+            shadow.setAttribute('type', match.shadows[name].type);
             const field = document.createElement('field');
-            field.setAttribute('name', match.args[name].field);
-            field.textContent = match.args[name].value;
+            field.setAttribute('name', match.shadows[name].field);
+            field.textContent = match.args[name] ? match.args[name].value : '';
             shadow.appendChild(field);
             input.appendChild(shadow);
             continue;
@@ -418,6 +420,7 @@ Blockly.BlockPicker.prototype.update = function(nodes, fromToolbox) {
             this.index_.push({
                 type: block.type,
                 types: Object.fromEntries(words.reduce((c,v) => typeof v === 'object' ? (c.push([v.name, v.type]), c) : c, [])),
+                shadows: Object.fromEntries(words.reduce((c,v) => typeof v.default === 'string' ? (c.push([v.name, { type: v.default, field: defaultName }]), c) : c, [])),
                 words,
                 isReporter: !!block.outputConnection
             });
