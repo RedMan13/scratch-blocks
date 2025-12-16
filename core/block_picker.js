@@ -128,7 +128,7 @@ Blockly.BlockPicker.deriveQualifiers = function(string) {
     }
     return res;
 }
-const debugFilter = false;
+const debugFilter = true;
 /**
  * Gets a list of the most likely matches for a given string of words
  * @param {string[]} words 
@@ -165,6 +165,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                     valid = false;
                     break;
                 }
+                if (debugFilter) console.log(indent, 'checking word', word);
                 // word matches, just keep rolling
                 if (typeof word !== 'object' && word === words[j + offset]) continue;
                 // last item, need to simply grab up the last of it as input words
