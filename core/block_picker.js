@@ -420,7 +420,7 @@ Blockly.BlockPicker.prototype.update = function(nodes, fromToolbox) {
             this.index_.push({
                 type: block.type,
                 types: Object.fromEntries(words.reduce((c,v) => typeof v === 'object' ? (c.push([v.name, v.type]), c) : c, [])),
-                shadows: Object.fromEntries(words.reduce((c,v) => typeof v.default === 'string' ? (c.push([v.name, { type: v.default, field: defaultName }]), c) : c, [])),
+                shadows: Object.fromEntries(words.reduce((c,v) => typeof v.default === 'string' ? (c.push([v.name, { type: v.default, field: v.defaultName }]), c) : c, [])),
                 words,
                 isReporter: !!block.outputConnection
             });
