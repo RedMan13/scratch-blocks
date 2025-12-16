@@ -111,13 +111,29 @@ Blockly.BlockPicker.processNodes = function(nodes) {
     }
     return results;
 }
+Blockly.BlockPicker.deriveQualifiers = function(string) {
+    const res = {
+        words: [''],
+        text: string,
+        mapping: []
+    }
+    for (let i = 0; i < string.length; i++) {
+        if (/^[^a-z+-/*&$#@0-9]/i.test(string[i])) {
+            if (words.at(-1).length) words.push('');
+            continue;
+        }
+        if (res.mapping.length < res.words.length) res.mapping.push(i);
+        res.words[res.words.length -1] += string[i];
+    }
+    return res;
+}
 const debugFilter = false;
 /**
  * Gets a list of the most likely matches for a given string of words
  * @param {string[]} words 
  * @param {BlockIndex[]} index 
  */
-Blockly.BlockPicker.getBestMatches = function(words, index, workspace, indent) {
+Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, workspace, indent) {
     const cache = {};
     // we need to find all block types that most closely match the structure
     // while also allowing for ambiguity, such as set x to y. this could be
@@ -167,7 +183,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, workspace, indent) {
                     }
                     // those words cant be in it, the input is unconfigurable
                     if (!word.configurable) break;
-                    const val = words.slice(start, j + offset +1).join(' ');
+                    const val = string.slice(mapping[start -1] || 0).trim();
                     if (word.restrictor instanceof RegExp && !word.restrictor.test(val)) {
                         if (word.type === 'input') break;
                         if (debugFilter) console.log(indent, val, 'isnt valid');
@@ -221,7 +237,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, workspace, indent) {
                 }
                 // those words cant be in it, the input is unconfigurable
                 if (!word.configurable) continue;
-                const val = words.slice(start, j + offset +1).join(' ');
+                const val = string.slice(mapping[start || 0], mapping[j + offset +1]  || string.length).trim();
                 if (word.restrictor instanceof RegExp && !word.restrictor.test(val)) {
                     if (word.type === 'input') continue;
                     if (debugFilter) console.log(indent, val, 'isnt valid for', word);
@@ -277,7 +293,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, workspace, indent) {
         if (debugFilter) console.log(indent, 'Total matches', matches);
         return matches
     }
-    return traverseInputsDeep(words, 0, null, '');
+    return traverseInputsDeep(words, 0, null);
 }
 Blockly.BlockPicker.generateFromMatch = function(match) {
     const block = document.createElement('block');
@@ -334,8 +350,8 @@ Blockly.BlockPicker.prototype.init = function() {
 Blockly.BlockPicker.prototype.search = function() {
     const search = this.search_.value;
     // strip out all none-spoken symbols when splitting, also only support english for now
-    const words = search.split(/[^a-z+-/*&$#@0-9]+/gi).filter(Boolean);
-    const matches = Blockly.BlockPicker.getBestMatches(words, this.index_);
+    const parses = Blockly.BlockPicker.deriveQualifiers(search);
+    const matches = Blockly.BlockPicker.getBestMatches(parses.words, this.index_, parses.text, parses.mapping, this.workspace_, '');
     const xmlList = [];
     for (let i = 0, match; match = matches[i]; i++) {
         xmlList.push(Blockly.BlockPicker.generateFromMatch(match));
