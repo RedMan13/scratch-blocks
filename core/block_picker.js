@@ -205,8 +205,6 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                         break;
                     }
                     args[word.name].push({
-                        type: word.default,
-                        field: word.defaultName,
                         shadow: true,
                         value: val
                     });
@@ -259,8 +257,6 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                     break;
                 }
                 args[word.name].push({
-                    type: word.default,
-                    field: word.defaultName,
                     shadow: true,
                     value: val
                 });
@@ -309,14 +305,16 @@ Blockly.BlockPicker.generateFromMatch = function(match) {
             input.textContent = match.args[name] ? match.args[name].value : '';
             continue;
         }
-        if (match.args[name] ? match.args[name].shadow : match.shadows[name]) {
-            const shadow = document.createElement('shadow');
-            shadow.setAttribute('type', match.shadows[name].type);
-            const field = document.createElement('field');
-            field.setAttribute('name', match.shadows[name].field);
-            field.textContent = match.args[name] ? match.args[name].value : '';
-            shadow.appendChild(field);
-            input.appendChild(shadow);
+        const shadow = document.createElement('shadow');
+        shadow.setAttribute('type', match.shadows[name].type);
+        const field = document.createElement('field');
+        field.setAttribute('name', match.shadows[name].field);
+        field.textContent = '';
+        shadow.appendChild(field);
+        input.appendChild(shadow);
+        if (match.args[name] && match.args[name].shadow) {
+            field.textContent = match.args[name].value;
+            continue;
         }
         if (match.args[name])
             input.appendChild(Blockly.BlockPicker.generateFromMatch(match.args[name]));
