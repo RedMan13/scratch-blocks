@@ -305,6 +305,10 @@ Blockly.BlockPicker.generateFromMatch = function(match) {
         const input = document.createElement(match.types[name] === 'input' ? 'value' : 'field');
         input.setAttribute('name', name);
         block.appendChild(input);
+        if (match.types[name] === 'field') {
+            input.textContent = match.args[name] ? match.args[name].value : '';
+            continue;
+        }
         if (match.args[name] ? match.args[name].shadow : match.shadows[name]) {
             const shadow = document.createElement('shadow');
             shadow.setAttribute('type', match.shadows[name].type);
