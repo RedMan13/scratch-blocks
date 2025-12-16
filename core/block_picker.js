@@ -196,7 +196,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                         valid = false;
                         break;
                     }
-                    if (word.varType && workspace.getVariablesOfType(word.varType).some(function (variable) { return variable.name === val })) {
+                    if (typeof word.varType === 'string' && workspace.getVariablesOfType(word.varType).some(function (variable) { return variable.name === val })) {
                         if (word.type === 'input') break;
                         if (debugFilter) console.log(indent, val, 'isnt valid');
                         valid = false;
