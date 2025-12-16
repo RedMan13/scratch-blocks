@@ -120,7 +120,7 @@ Blockly.BlockPicker.deriveQualifiers = function(string) {
     }
     for (let i = 0; i < string.length; i++) {
         if (/^[^a-z+-/*&$#@0-9]/i.test(string[i])) {
-            if (words.at(-1).length) words.push('');
+            if (words.at(-1).length) res.words.push('');
             continue;
         }
         if (res.mapping.length < res.words.length) res.mapping.push(i);
@@ -197,7 +197,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                         valid = false;
                         break;
                     }
-                    if (typeof word.varType === 'string' && workspace.getVariablesOfType(word.varType).some(function (variable) { return variable.name === val })) {
+                    if (typeof word.varType === 'string' && !workspace.getVariablesOfType(word.varType).some(function (variable) { return variable.name === val })) {
                         if (word.type === 'input') break;
                         if (debugFilter) console.log(indent, val, 'isnt valid');
                         valid = false;
