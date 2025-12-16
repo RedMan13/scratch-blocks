@@ -359,6 +359,9 @@ Blockly.BlockPicker.prototype.update = function(nodes, fromToolbox) {
             const block = this.flyout_.workspace_.getBlockById(id);
             if (indexed[block.type]) continue;
             const words = [];
+            // the block MUST have a qualifier, qualifiers being fields
+            // if they dont then it causes the search output to be overrun with irrelevant permuations
+            if (block.inputList.length == 1 && block.inputList[0].fieldRow.length <= 0) continue;
             for (var i = 0, input; input = block.inputList[i]; i++) {
                 for (var j = 0, field; field = input.fieldRow[j]; j++) {
                     if (!field.TEXT_INPUT) {
