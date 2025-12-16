@@ -314,7 +314,8 @@ Blockly.BlockPicker.generateFromMatch = function(match) {
             input.appendChild(shadow);
             continue;
         }
-        input.appendChild(Blockly.BlockPicker.generateFromMatch(match.args[name]));
+        if (match.args[name])
+            input.appendChild(Blockly.BlockPicker.generateFromMatch(match.args[name]));
     }
     return block;
 }
