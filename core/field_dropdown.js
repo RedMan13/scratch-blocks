@@ -112,6 +112,13 @@ Blockly.FieldDropdown.prototype.imageElement_ = null;
 Blockly.FieldDropdown.prototype.imageJson_ = null;
 
 /**
+ * Text input fields are any fields designed to be set to and display that text.
+ * @type {boolean}
+ * @public
+ */
+Blockly.FieldDropdown.prototype.TEXT_INPUT = true;
+
+/**
  * Install this dropdown on a block.
  */
 Blockly.FieldDropdown.prototype.init = function() {

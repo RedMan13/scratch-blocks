@@ -142,6 +142,13 @@ Blockly.FieldAngle.CENTER_RADIUS = 2;
 Blockly.FieldAngle.ARROW_SVG_PATH = 'icons/arrow.svg';
 
 /**
+ * Text input fields are any fields designed to be set to and display that text.
+ * @type {boolean}
+ * @public
+ */
+Blockly.FieldAngle.prototype.TEXT_INPUT = true;
+
+/**
  * Clean up this FieldAngle, as well as the inherited FieldTextInput.
  * @return {!Function} Closure to call on destruction of the WidgetDiv.
  * @private

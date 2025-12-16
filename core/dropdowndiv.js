@@ -220,9 +220,14 @@ Blockly.DropDownDiv.showPositionedByBlock = function(owner, block,
  * @param {Function=} opt_onHide Optional callback for when the drop-down is hidden
  * @return {boolean} True if the menu rendered at the primary origin point.
  */
-Blockly.DropDownDiv.show = function(owner, primaryX, primaryY, secondaryX, secondaryY, opt_onHide) {
+Blockly.DropDownDiv.show = function(owner, primaryX, primaryY, secondaryX, secondaryY, opt_onHide, opt_closeLazily) {
+  if (typeof opt_onHide == 'boolean') {
+    opt_closeLazily = opt_onHide;
+    opt_onHide = null;
+  }
   Blockly.DropDownDiv.owner_ = owner;
   Blockly.DropDownDiv.onHide_ = opt_onHide;
+  Blockly.DropDownDiv.closeLazily = opt_closeLazily;
   var div = Blockly.DropDownDiv.DIV_;
   var metrics = Blockly.DropDownDiv.getPositionMetrics(primaryX, primaryY, secondaryX, secondaryY);
   // Update arrow CSS

@@ -90,6 +90,13 @@ Blockly.FieldImage.prototype.EDITABLE = true;
 Blockly.FieldImage.prototype.SERIALIZABLE = false;
 
 /**
+ * Text input fields are any fields designed to be set to and display that text.
+ * @type {boolean}
+ * @public
+ */
+Blockly.FieldImage.prototype.TEXT_INPUT = false;
+
+/**
  * Install this image on a block.
  */
 Blockly.FieldImage.prototype.init = function() {

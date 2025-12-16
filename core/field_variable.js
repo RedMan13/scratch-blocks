@@ -80,6 +80,13 @@ Blockly.FieldVariable.fromJson = function(options) {
 };
 
 /**
+ * Text input fields are any fields designed to be set to and display that text.
+ * @type {boolean}
+ * @public
+ */
+Blockly.FieldVariable.prototype.TEXT_INPUT = true;
+
+/**
  * Initialize everything needed to render this field.  This includes making sure
  * that the field's value is valid.
  * @public

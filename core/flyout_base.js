@@ -467,7 +467,7 @@ Blockly.Flyout.prototype.hide = function() {
  * @param {!Array|string} xmlList List of blocks to show.
  *     Variables and procedures have a custom set of blocks.
  */
-Blockly.Flyout.prototype.show = function(xmlList) {
+Blockly.Flyout.prototype.show = function(xmlList, isBlockPicker) {
   this.workspace_.setResizesEnabled(false);
   this.hide();
   this.clearOldBlocks_();
@@ -569,6 +569,9 @@ Blockly.Flyout.prototype.show = function(xmlList) {
       }
     }
   }
+
+  // final xmlList has all custom gategories generated already
+  if (!isBlockPicker) this.workspace_.targetWorkspace.blockPicker_.update(xmlList, true);
 
   this.emptyRecycleBlocks_();
 
@@ -934,6 +937,7 @@ Blockly.Flyout.prototype.placeNewBlock_ = function(oldBlock) {
   var finalOffsetMainWs = finalOffsetPixels.scale(1 / targetWorkspace.scale);
 
   block.moveBy(finalOffsetMainWs.x, finalOffsetMainWs.y);
+  Blockly.DropDownDiv.hideWithoutAnimation();
   return block;
 };
 

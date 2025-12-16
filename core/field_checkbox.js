@@ -66,6 +66,13 @@ Blockly.FieldCheckbox.fromJson = function(options) {
 Blockly.FieldCheckbox.prototype.CURSOR = 'default';
 
 /**
+ * Text input fields are any fields designed to be set to and display that text.
+ * @type {boolean}
+ * @public
+ */
+Blockly.FieldCheckbox.prototype.TEXT_INPUT = false;
+
+/**
  * Install this checkbox on a block.
  */
 Blockly.FieldCheckbox.prototype.init = function() {

@@ -57,6 +57,13 @@ Blockly.FieldVariableGetter = function(text, name, opt_varType) {
 goog.inherits(Blockly.FieldVariableGetter, Blockly.Field);
 
 /**
+ * Text input fields are any fields designed to be set to and display that text.
+ * @type {boolean}
+ * @public
+ */
+Blockly.FieldVariableGetter.prototype.TEXT_INPUT = true;
+
+/**
  * Construct a FieldVariableGetter from a JSON arg object,
  * dereferencing any string table references.
  * @param {!Object} options A JSON object with options (variable,

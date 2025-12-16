@@ -78,6 +78,13 @@ Blockly.FieldColour.prototype.colours_ = null;
 Blockly.FieldColour.prototype.columns_ = 0;
 
 /**
+ * Text input fields are any fields designed to be set to and display that text.
+ * @type {boolean}
+ * @public
+ */
+Blockly.FieldColour.prototype.TEXT_INPUT = false;
+
+/**
  * Install this field on a block.
  * @param {!Blockly.Block} block The block containing this field.
  */

@@ -63,6 +63,29 @@ Blockly.FieldButton.fromJson = function(options) {
 Blockly.FieldButton.prototype.CURSOR = 'pointer';
 
 /**
+ * Editable fields usually show some sort of UI for the user to change them.
+ * Though this one does not, instead triggering an arbitrary even.
+ * @type {boolean}
+ * @public
+ */
+Blockly.FieldButton.prototype.EDITABLE = true;
+
+/**
+ * Serializable fields are saved by the XML renderer, non-serializable fields
+ * are not.  Editable fields should be serialized.
+ * @type {boolean}
+ * @public
+ */
+Blockly.FieldButton.prototype.SERIALIZABLE = false;
+
+/**
+ * Text input fields are any fields designed to be set to and display that text.
+ * @type {boolean}
+ * @public
+ */
+Blockly.FieldButton.prototype.TEXT_INPUT = false;
+
+/**
  * Install this checkbox on a block.
  */
 Blockly.FieldButton.prototype.init = function() {
@@ -106,6 +129,7 @@ Blockly.FieldButton.prototype.init = function() {
 Blockly.FieldButton.prototype.getValue = function() {
   return '';
 };
+
 /**
  * Triggers when the button is clicked.
  * @private

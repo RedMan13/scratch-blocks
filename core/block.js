@@ -1231,25 +1231,40 @@ Blockly.Block.prototype.toString = function(opt_maxLength, opt_emptyToken) {
   if (this.collapsed_) {
     text.push(this.getInput('_TEMP_COLLAPSED_INPUT').fieldRow[0].text_);
   } else {
-    for (var i = 0, input; input = this.inputList[i]; i++) {
-      for (var j = 0, field; field = input.fieldRow[j]; j++) {
-        if (field instanceof Blockly.FieldDropdown && !field.getValue()) {
-          text.push(emptyFieldPlaceholder);
-        } else {
-          if (field.isVisible()) text.push(field.getText());
+    // mono-field blocks like get variable and text input dont visually look like a field inside a block
+    if (this.inputList.length === 1 && this.inputList[0].type === Blockly.DUMMY_INPUT && this.inputList[0].fieldRow.length === 1) {
+      text.push(this.inputList[0].fieldRow[0].getText());
+    } else {
+      for (var i = 0, input; input = this.inputList[i]; i++) {
+        for (var j = 0, field; field = input.fieldRow[j]; j++) {
+          if (field instanceof Blockly.FieldLabel && field.getText()) {
+            text.push(field.getText());
+            continue;
+          }
+          let str = '['
+          if (field instanceof Blockly.FieldDropdown && !field.getValue()) {
+            str += emptyFieldPlaceholder;
+          } else {
+            if (field.isVisible()) str += field.getText();
+          }
+          str += ']'
+          text.push(str);
         }
-      }
-      if (input.connection) {
-        var child = input.connection.targetBlock();
-        if (child) {
-          text.push(child.toString(undefined, opt_emptyToken));
-        } else {
-          text.push(emptyFieldPlaceholder);
+        if (input.connection) {
+          var child = input.connection.targetBlock();
+          let str = '('
+          if (child) {
+            str += child.toString(undefined, opt_emptyToken);
+          } else {
+            str += emptyFieldPlaceholder;
+          }
+          str += ')';
+          text.push(str);
         }
       }
     }
   }
-  text = goog.string.trim(text.join(' ')) || '???';
+  text = goog.string.trim(text.join(' '));
   if (opt_maxLength) {
     // TODO: Improve truncation so that text from this block is given priority.
     // E.g. "1+2+3+4+5+6+7+8+9=0" should be "...6+7+8+9=0", not "1+2+3+4+5...".
@@ -1309,7 +1324,8 @@ Blockly.Block.prototype.jsonInit = function(json) {
 
   // Interpolate the message blocks.
   var i = 0;
-  while (json['message' + i] !== undefined) {
+  while (('message' + i) in json) {
+    if (json['message' + i] === undefined) { console.log(json['type']); break; }
     this.interpolate_(json['message' + i], json['args' + i] || [],
         json['lastDummyAlign' + i]);
     i++;

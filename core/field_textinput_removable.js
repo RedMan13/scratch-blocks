@@ -72,6 +72,13 @@ Blockly.FieldTextInputRemovable.prototype.showEditor_ = function() {
 };
 
 /**
+ * Text input fields are any fields designed to be set to and display that text.
+ * @type {boolean}
+ * @public
+ */
+Blockly.FieldTextInputRemovable.prototype.TEXT_INPUT = true;
+
+/**
  * Function to call when remove button is called. Checks for removeFieldCallback
  * on sourceBlock and calls it if possible.
  * @private
