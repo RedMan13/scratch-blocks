@@ -128,7 +128,7 @@ Blockly.BlockPicker.deriveQualifiers = function(string) {
     }
     return res;
 }
-const debugFilter = true;
+const debugFilter = false;
 /**
  * Gets a list of the most likely matches for a given string of words
  * @param {string[]} words 
@@ -305,7 +305,7 @@ Blockly.BlockPicker.generateFromMatch = function(match) {
         const input = document.createElement(match.types[name] === 'input' ? 'value' : 'field');
         input.setAttribute('name', name);
         block.appendChild(input);
-        if (match.shadows[name]) {
+        if (match.args[name] ? match.args[name].shadow : match.shadows[name]) {
             const shadow = document.createElement('shadow');
             shadow.setAttribute('type', match.shadows[name].type);
             const field = document.createElement('field');
@@ -313,7 +313,6 @@ Blockly.BlockPicker.generateFromMatch = function(match) {
             field.textContent = match.args[name] ? match.args[name].value : '';
             shadow.appendChild(field);
             input.appendChild(shadow);
-            continue;
         }
         if (match.args[name])
             input.appendChild(Blockly.BlockPicker.generateFromMatch(match.args[name]));
