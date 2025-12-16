@@ -119,6 +119,12 @@ Blockly.Block = function(workspace, prototypeName, opt_id) {
    * @type {boolean}
    * @private
    */
+  this.expandable_ = false;
+
+  /**
+   * @type {boolean}
+   * @private
+   */
   this.isShadow_ = false;
 
   /**
@@ -582,6 +588,17 @@ Blockly.Block.prototype.setParent = function(newParent) {
   if (newParent) {
     // Add this block to the new parent's child list.
     newParent.childBlocks_.push(this);
+
+    // apply the shape changer if this block is droppable anywhere
+    if (this.outputConnection && !this.originalOutputShape_) {
+        if (!this.outputConnection.check_) {
+            var shape = this.outputConnection.targetConnection.shape_;
+            if (shape) {
+                this.originalOutputShape_ = this.outputShape_;
+                this.outputShape_ = shape;
+            }
+        }
+    }
   } else {
     this.workspace.addTopBlock(this);
   }
@@ -691,6 +708,14 @@ Blockly.Block.prototype.setInsertionMarker = function(insertionMarker) {
  */
 Blockly.Block.prototype.isEditable = function() {
   return this.editable_ && !(this.workspace && this.workspace.options.readOnly);
+};
+
+/**
+ * Get whether this block is expandable or not
+ * @return {boolean} True if expandable.
+ */
+Blockly.Block.prototype.isExpandable = function() {
+  return this.expandable_;
 };
 
 /**
@@ -876,6 +901,17 @@ Blockly.Block.prototype.setColour = function(colour, colourSecondary, colourTert
 };
 
 /**
+ * Change the colour of the text in a block
+ * @param {number|string} colour HSV hue value, or #RRGGBB string.
+ */
+Blockly.Block.prototype.setTextColour = function(colour) {
+  this.textColour = this.makeColour_(colour);
+  if (this.rendered) {
+    this.updateColour();
+  }
+};
+
+/**
  * Sets a callback function to use whenever the block's parent workspace
  * changes, replacing any prior onchange handler. This is usually only called
  * from the constructor, the block type initializer function, or an extension
@@ -1009,7 +1045,8 @@ Blockly.Block.prototype.getFieldValue = function(name) {
 Blockly.Block.prototype.setFieldValue = function(newValue, name) {
   var field = this.getField(name);
   goog.asserts.assertObject(field, 'Field "%s" not found.', name);
-  field.setValue(newValue);
+  if (field) field.setValue(newValue);
+  else console.warn(`Field '${name}' not found.`)
 };
 
 /**
@@ -1199,7 +1236,7 @@ Blockly.Block.prototype.toString = function(opt_maxLength, opt_emptyToken) {
         if (field instanceof Blockly.FieldDropdown && !field.getValue()) {
           text.push(emptyFieldPlaceholder);
         } else {
-          text.push(field.getText());
+          if (field.isVisible()) text.push(field.getText());
         }
       }
       if (input.connection) {
@@ -1335,6 +1372,38 @@ Blockly.Block.prototype.jsonInit = function(json) {
   if (json['category'] !== undefined) {
     this.setCategory(json['category']);
   }
+
+  if (json['mutations']) {
+    const handler = json['mutations'];
+    this.mutationToDom = function () {
+      // save mutations
+      const serializer = Object.create(null);
+      handler.serialize(this, serializer);
+      const xmlElement = document.createElement("mutation");
+      for (const [name, value] of Object.entries(serializer)) {
+        // force names to be lowercase, otherwise it wont save
+        const lowercaseName = name.toLowerCase();
+        if (name !== lowercaseName) {
+          console.warn(`WARNING: mutation setting named ${name} in ${this.type} has uppercase characters! Converting to lowercase...`);
+        }
+        xmlElement.setAttribute(lowercaseName, value);
+      }
+      return xmlElement;
+    }
+    
+    this.domToMutation = function(xmlElement) {
+      // load mutations
+      const deserialized = {};
+      for (const attr of xmlElement.attributes) {
+        deserialized[attr.name] = attr.value;
+      }
+
+      handler.deserialize(this, deserialized);
+    }
+
+    // optional mutation initialize
+    if (handler.init) handler.init(this);
+  }
 };
 
 /**
@@ -1396,6 +1465,7 @@ Blockly.Block.prototype.setColourFromRawValues_ = function(primary, secondary,
 Blockly.Block.prototype.setColourFromJson_ = function(json) {
   this.setColourFromRawValues_(json['colour'], json['colourSecondary'],
       json['colourTertiary']);
+  if (json['blockText']) this.setTextColour(json['blockText']);
 };
 
 /**
@@ -1471,6 +1541,18 @@ Blockly.Block.prototype.interpolate_ = function(message, args, lastDummyAlign) {
           switch (element['type']) {
             case 'input_value':
               input = this.appendValueInput(element['name']);
+
+              if (element['shape']) {
+                // temporary patch (connect_ will be auto replaced)
+                const shape = element['shape'];
+                const ogConnect = input.connection.connect_;
+                input.connection.connect_ = function(...args) {
+                  if (args[0].sourceBlock_.isShadow()) {
+                    args[0].sourceBlock_.setOutputShape(shape);
+                  }
+                  ogConnect.call(this, ...args);
+                }
+              }
               break;
             case 'input_statement':
               input = this.appendStatementInput(element['name']);

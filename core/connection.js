@@ -515,16 +515,35 @@ Blockly.Connection.prototype.isConnectionAllowed = function(candidate) {
  */
 Blockly.Connection.prototype.connect = function(otherConnection) {
   if (this.targetConnection == otherConnection) {
-    // Already connected together.  NOP.
+    // Already connected together. NOP.
     return;
   }
   this.checkConnection_(otherConnection);
   // Determine which block is superior (higher in the source stack).
   if (this.isSuperior()) {
     // Superior block.
+    if (!this.otherConnection && this.check_) {
+      // reshape the connected block so it inherits the parent shape
+      const block = otherConnection.sourceBlock_;
+      const hasBranches = block.inputList.some(i => i.type === Blockly.NEXT_STATEMENT);
+      if (!hasBranches && block.type !== 'procedures_prototype') {
+        if (block.originalOutputShape_ === undefined) block.originalOutputShape_ = block.outputShape_;
+        const lastConnectShape = block.outputShape_;
+        block.outputShape_ = this.getOutputShape();
+        if (block.rendered && block.outputShape_ !== lastConnectShape) block.render(true);
+      }
+    }
     this.connect_(otherConnection);
   } else {
     // Inferior block.
+    if (!this.check_ || otherConnection.check_) {
+      // reshape the connected block so it inherits the parent shape
+      const block = this.sourceBlock_;
+      if (block.originalOutputShape_ === undefined) block.originalOutputShape_ = block.outputShape_;
+      const lastConnectShape = block.outputShape_;
+      block.outputShape_ = otherConnection.getOutputShape();
+      if (block.rendered && block.outputShape_ !== lastConnectShape) block.render(true);
+    }
     otherConnection.connect_(this);
   }
 };
@@ -586,6 +605,7 @@ Blockly.Connection.prototype.disconnect = function() {
     childBlock = this.sourceBlock_;
     parentConnection = otherConnection;
   }
+  if (childBlock.originalOutputShape_ !== undefined) childBlock.outputShape_ = childBlock.originalOutputShape_;
   this.disconnectInternal_(parentBlock, childBlock);
   parentConnection.respawnShadow_();
 };
@@ -652,9 +672,12 @@ Blockly.Connection.prototype.targetBlock = function() {
  */
 Blockly.Connection.prototype.checkType_ = function(otherConnection) {
   if (!this.check_ || !otherConnection.check_) {
-    // One or both sides are promiscuous enough that anything will fit.
+    // One or both sides are promiscuous enough that anything will fit,
+    // as long as the other is not a procedure.
+    if (otherConnection.check_ && otherConnection.check_[0] === 'procedure') return false;
     return true;
   }
+
   // Find any intersection in the check lists.
   for (var i = 0; i < this.check_.length; i++) {
     if (otherConnection.check_.indexOf(this.check_[i]) != -1) {

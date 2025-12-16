@@ -26,7 +26,6 @@ goog.require('Blockly.Blocks');
 goog.require('Blockly.Colours');
 goog.require('Blockly.ScratchBlocks.VerticalExtensions');
 
-
 Blockly.Blocks['control_forever'] = {
   /**
    * Block for repeat n times (external number).
@@ -53,13 +52,25 @@ Blockly.Blocks['control_forever'] = {
           "src": Blockly.mainWorkspace.options.pathToMedia + "repeat.svg",
           "width": 24,
           "height": 24,
-          "alt": "*",
+          "alt": "⤴",
           "flip_rtl": true
         }
       ],
       "category": Blockly.Categories.control,
-      "extensions": ["colours_control", "shape_end"]
+      "extensions": ["colours_control", "shape_statement"]
     });
+    this.setNextStatement(false);
+    this.hasBreak_ = false;
+  },
+  mutationToDom: function() {
+    var container = document.createElement('mutation');
+    container.setAttribute('hasbreak', this.hasBreak_);
+    return container;
+  },
+  domToMutation: function(xmlElement) {
+    var hasNext = (xmlElement.getAttribute('hasbreak') == 'true');
+    this.hasBreak_ = hasNext;
+    this.setNextStatement(hasNext, "normal");
   }
 };
 
@@ -95,7 +106,7 @@ Blockly.Blocks['control_repeat'] = {
           "src": Blockly.mainWorkspace.options.pathToMedia + "repeat.svg",
           "width": 24,
           "height": 24,
-          "alt": "*",
+          "alt": "⤴",
           "flip_rtl": true
         }
       ],
@@ -136,7 +147,7 @@ Blockly.Blocks['control_repeatForSeconds'] = {
           "src": Blockly.mainWorkspace.options.pathToMedia + "repeat.svg",
           "width": 24,
           "height": 24,
-          "alt": "*",
+          "alt": "⤴",
           "flip_rtl": true
         }
       ],
@@ -215,6 +226,185 @@ Blockly.Blocks['control_if_else'] = {
   }
 };
 
+Blockly.Blocks['control_expandableIf'] = {
+  /**
+   * pm: Block for expandable if else
+   * @this Blockly.Block
+   */
+  init: function () {
+    this.jsonInit({
+      "message0": 'hidden %1 %2',
+      "args0": [
+        {
+          "type": "field_expandable_remove",
+          "name": "REMOVE"
+        },
+        {
+          "type": "field_expandable_add",
+          "name": "ADD"
+        }
+      ],
+      "category": Blockly.Categories.control,
+      "extensions": ["colours_control", "shape_statement"]
+    });
+
+    this.branches_ = 0;
+    this.nextIsElse = true;
+    this.endsInElse = false;
+    this.expandable_ = true;
+  },
+
+  fillInBlock: Blockly.scratchBlocksUtils.generateMutatorShadow,
+  fixupButtons: function() {
+    const expandableInput = this.getInput("");
+    this.inputList.splice(this.inputList.indexOf(expandableInput), 1);
+    this.inputList.push(expandableInput);
+
+    expandableInput.setAlign(1);
+    const hiddenBtn = expandableInput.fieldRow[0];
+    hiddenBtn.size_.width = 0.5;
+    hiddenBtn.size_.height = Blockly.BlockSvg.INPUT_SHAPE_HEIGHT + 16;
+    hiddenBtn.setVisible(false);
+  },
+  addCase: function(shouldPopulate) {
+    if (this.nextIsElse) {
+      this.appendDummyInput(`TEXTSTART${this.branches_}`).appendField("else");
+      this.appendStatementInput(`SUBSTACK${this.branches_}`).setCheck("normal");
+      this.endsInElse = true;
+    } else {
+      const prevText = this.getInput(`TEXTSTART${this.branches_}`);
+      if (prevText) prevText.appendField("if");
+      else this.appendDummyInput(`TEXTSTART${this.branches_}`).appendField("if");
+      const input = this.appendValueInput(`BOOL${this.branches_}`).setCheck("Boolean");
+      if (!this.isInsertionMarker_) {
+        input.init();
+        input.initOutlinePath(this.svgGroup_);
+        input.outlinePath.setAttribute('fill', this.getColourTertiary());
+      }
+      if (shouldPopulate) this.fillInBlock(input.connection, "checkbox");
+      this.appendDummyInput(`TEXTEND${this.branches_}`).appendField("then");
+
+      // swap out the connection with the old and new branch
+      const prevBranch = this.getInput(`SUBSTACK${this.branches_}`);
+      const newBranch = this.appendStatementInput(`SUBSTACK${this.branches_}`).setCheck("normal");
+      if (this.branches_ > 1) {
+        const prevBranchBlock = prevBranch.connection.targetBlock();
+        if (prevBranchBlock) newBranch.connection.connect(prevBranchBlock.previousConnection);
+        this.removeInput(`SUBSTACK${this.branches_}`);
+      }
+      this.endsInElse = false;
+    }
+
+    this.fixupButtons();
+  },
+
+  mutationToDom: function() {
+    // on save
+    const container = document.createElement("mutation");
+    container.setAttribute("branches", String(this.branches_));
+    container.setAttribute("ends-in-else", String(this.endsInElse));
+    return container;
+  },
+
+  domToMutation: function(xmlElement) {
+    // on load
+    const inputCount = Number(xmlElement.getAttribute("branches"));
+    let branchCount = isNaN(inputCount) ? 0 : inputCount;
+    let needsActionConnect = false, oldConnections;
+
+    if (this.inputList.length - 1 > 0) {
+      // this was a control z action
+      needsActionConnect = true;
+      oldConnections = this.getConnections_().map(c => c.targetBlock());
+
+      // clear block
+      for (var i = this.inputList.length - 1; i--;) {
+        const input = this.inputList[i];
+        if (input.name.startsWith("SUBSTACK") || input.name.startsWith("BOOL")) {
+          if (input.connection.targetBlock()) input.connection.disconnect();
+        }
+        this.removeInput(input.name);
+      }
+    }
+
+    if (branchCount > 1) {
+      branchCount = (branchCount * 2) - 1;
+      if (xmlElement.getAttribute("ends-in-else") === "true") branchCount -= 1;
+    }
+
+    this.nextIsElse = false;
+    this.endsInElse = false;
+    this.branches_ = 1;
+    for (let i = 0; i < branchCount; i++) {
+      if (this.nextIsElse) this.branches_++;
+      // vm handles shadow values
+      this.addCase(false);
+      this.nextIsElse = !this.nextIsElse;
+    }
+
+    this.fixupButtons();
+    if (needsActionConnect) {
+      let index = 2;
+      for (var i = 0; i < this.inputList.length; i++) {
+        const input = this.inputList[i];
+        if (input.name.startsWith("SUBSTACK") || input.name.startsWith("BOOL")) {
+          const oldBlock = oldConnections[index];
+          if (oldBlock) {
+            try {
+              const connector = oldBlock.outputConnection ? oldBlock.outputConnection : oldBlock.previousConnection;
+              input.connection.connect(connector);
+            } catch(e) {}
+          }
+          index++;
+        }
+      }
+      for (var i = index - 1; i < oldConnections.length; i++) {
+        if (oldConnections[i] && oldConnections[i].type === "checkbox") oldConnections[i].dispose();
+      }
+    }
+  },
+
+  onExpandableButtonClicked_: function (isAdding) {
+    // Create an event group to keep field value and mutator in sync
+    // Return null at the end because setValue is called here already.
+    if (this.isInFlyout) return;
+    Blockly.Events.setGroup(true);
+    Blockly.Events.expandableClick = true;
+    var oldMutation = Blockly.Xml.domToText(this.mutationToDom());
+    if (isAdding) {
+      if (this.nextIsElse) this.branches_++;
+      this.addCase(true);
+      this.nextIsElse = !this.nextIsElse;
+    } else if (this.branches_ > 1) {
+      const boolInput = this.getInput(`BOOL${this.branches_}`);
+      if (boolInput) {
+        const block = boolInput.connection.targetBlock();
+        if (block) {
+          if (block.type === "checkbox") block.dispose();
+          else block.outputConnection.disconnect();
+        }
+      }
+
+      this.removeInput(`BOOL${this.branches_}`);
+      this.removeInput(`SUBSTACK${this.branches_}`);
+      this.removeInput(`TEXTSTART${this.branches_}`);
+      this.removeInput(`TEXTEND${this.branches_}`);
+      this.branches_--;
+      this.nextIsElse = true;
+      this.endsInElse = false;
+    }
+
+    this.initSvg();
+    if (this.rendered) this.render();
+
+    var newMutation = Blockly.Xml.domToText(this.mutationToDom());
+    Blockly.Events.fire(new Blockly.Events.BlockChange(
+      this, 'mutation', null, oldMutation, newMutation
+    ));
+    Blockly.Events.setGroup(false);
+    Blockly.Events.expandableClick = false;
+  }
+};
 
 Blockly.Blocks['control_try_catch'] = {
   /**
@@ -448,7 +638,7 @@ Blockly.Blocks['control_repeat_until'] = {
           "src": Blockly.mainWorkspace.options.pathToMedia + "repeat.svg",
           "width": 24,
           "height": 24,
-          "alt": "*",
+          "alt": "⤴",
           "flip_rtl": true
         }
       ],
@@ -488,7 +678,7 @@ Blockly.Blocks['control_while'] = {
           "src": Blockly.mainWorkspace.options.pathToMedia + "repeat.svg",
           "width": 24,
           "height": 24,
-          "alt": "*",
+          "alt": "⤴",
           "flip_rtl": true
         }
       ],
@@ -533,7 +723,7 @@ Blockly.Blocks['control_for_each'] = {
           "src": Blockly.mainWorkspace.options.pathToMedia + "repeat.svg",
           "width": 24,
           "height": 24,
-          "alt": "*",
+          "alt": "⤴",
           "flip_rtl": true
         }
       ],
@@ -722,7 +912,7 @@ Blockly.Blocks['control_run_as_sprite_menu'] = {
 Blockly.Blocks['control_run_as_sprite'] = {
   init: function() {
     this.jsonInit({
-      "message0": 'as %1',
+      "message0": 'as %1 do',
       "message1": "%1",
       "args0": [
         {
@@ -901,9 +1091,10 @@ Blockly.Blocks["control_backToGreenFlag"] = {
       "args0": [
         {
           "type": "field_image",
-          "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAACJ0lEQVRIid2Uy09TQRSHv2kv1VR5hhQQqwlYGtqCmtbHokhDTNQtEVz4B/gfmBCDXoyGmLj3kbBwY2LY6MpHWJDUoBukKsTKQ6I2paWGBipCo73jBii30BpI78ZfMpkzMznznTOPAwZLbFgt/ZWY011k9gzysSdZLICStdJXkPRjSns41hcH2Y7EjmAVmESKFyjyCaPqr50AzBtWbeAsEKDE0oy7w4rnfAXNbWU0nlY40CQwmX0kY73UBr4QGw5vu5vndg31Zy6wv3OGhecZfQbrajk3Rp2zXRdCqe0Irg5o8k8w+uwWR9VLmE13eaeNgarRqtoQ4jKKdpUy+wLy+3Hg2vaAQlIsbk51ZUjNJ/n8egBv5CBan2Bf5TL1nlkafGkWYz8YeVy94bIjwHpOpTY/vs7Nc1WAHQCNr5sXTLsA/EOaNBagabph8QEyYzAA3QkZkYGeUOAVyTlWUt/I/M5gLa/GpDjYXFryuumPaCsgMWsl+ilEfLoOSQTBClBBuW2GExcXsVi9hQFSF8RWQGT8MNCLwzXAYHc2nNabbQzdu4/TH6ThpBMhbDmef1iKhRgf8iHFo/wAeEpIfUgoZ/bD9SAB1Us42MPUiJOaxhBVh5YwKYKfib3MhZtYXS5B0sl79VUhQH4Nq6vADbzqHaJTbUQn3QjKECKOlG8Iqblh7apUsFayX661gjLgH/zPgPm1PlFMQPaSHa4HTIcnSFW8LSbAcP0F3uGqEimnx6MAAAAASUVORK5CYII=",
+          "src": Blockly.mainWorkspace.options.pathToMedia + "blue-flag.svg",
           "width": 24,
           "height": 24,
+          "alt": "flag",
           "flip_rtl": false
         }
       ],
@@ -933,8 +1124,10 @@ Blockly.Blocks["control_if_return_else_return"] = {
           "name": "TEXT2"
         }
       ],
+      "output": null,
       "category": Blockly.Categories.control,
-      "extensions": ["colours_control", "output_string"]
+      "extensions": ["colours_control"],
+      "outputShape": Blockly.OUTPUT_SHAPE_ROUND
     });
   }
 };
@@ -1073,6 +1266,77 @@ Blockly.Blocks['control_exitLoop'] = {
       "category": Blockly.Categories.control,
       "extensions": ["colours_control", "shape_end"]
     });
+
+    this.oldLoopBlock = null;
+
+    // its rather expensive to start listening to Blockly Events, its lighter to
+    // patch these functions for this specific block
+    this.originalSetDraggingFunc = this.setDragging;
+    this.setDragging = function(adding) {
+      this.originalSetDraggingFunc.call(this, adding);
+
+      if (adding) {
+        if (!this.getParent() && this.oldLoopBlock) {
+          this.setForeverNub(this.oldLoopBlock, false, true);
+        }
+      } else {
+        queueMicrotask(() => this.climbBlockTree((block) => {
+          this.setForeverNub(block, true, true);
+        }));
+      }
+    }
+
+    this.originalSetParent = this.setParent;
+    this.setParent = function(...args) {
+      this.originalSetParent.call(this, ...args);
+      if (this.isInsertionMarker_) return;
+
+      queueMicrotask(() => {
+        if (args[0]) this.climbBlockTree((block) => this.setForeverNub(block, true, true));
+        else {
+          if (!this.oldLoopBlock || this.workspace === null) return;
+          this.setForeverNub(this.oldLoopBlock, false, false);
+        }
+      });
+    }
+  },
+  climbBlockTree: function(callback) {
+    // recursively climb tree until we reach a forever loop block
+    let parent = this.getParent();
+    while (parent !== null) {
+      if (parent.type === "control_forever") {
+        // a smart way to check if we are a child is by checking our position
+        // child blocks are not aligned on the x axis
+        var childPos = this.getRelativeToSurfaceXY();
+        var parentPos = parent.getRelativeToSurfaceXY();
+        if (Math.round(childPos.x) !== Math.round(parentPos.x)) {
+          callback(parent);
+          return;
+        }
+      }
+
+      parent = parent.getParent();
+    }
+  },
+  setForeverNub: function(block, adding, callMutation) {
+    var oldMutation = Blockly.Xml.domToText(block.mutationToDom());
+    if (adding) {
+      block.setNextStatement(true, "normal");
+      block.hasBreak_ = true;
+      this.oldLoopBlock = block;
+      this.updateForeverMutation(oldMutation, this.oldLoopBlock);
+    } else {
+      this.oldLoopBlock.setNextStatement(false);
+      this.oldLoopBlock.hasBreak_ = false;
+      if (callMutation) this.updateForeverMutation(oldMutation, this.oldLoopBlock);
+      this.oldLoopBlock = null;
+    }
+  },
+  updateForeverMutation: function(oldMutation, foreverBlock) {
+    var newMutation = Blockly.Xml.domToText(foreverBlock.mutationToDom());
+    Blockly.Events.fire(new Blockly.Events.BlockChange(
+      foreverBlock, 'mutation', null, oldMutation, newMutation
+    ));
   }
 };
 
@@ -1086,32 +1350,12 @@ Blockly.Blocks['control_continueLoop'] = {
           "src": Blockly.mainWorkspace.options.pathToMedia + "repeat.svg",
           "width": 24,
           "height": 24,
-          "alt": "*",
+          "alt": "⤴",
           "flip_rtl": true
         }
       ],
       "category": Blockly.Categories.control,
       "extensions": ["colours_control", "shape_end"]
-    });
-  }
-};
-
-Blockly.Blocks['control_javascript_command'] = {
-  /**
-   * pm: Block to run javascript code.
-   * @this Blockly.Block
-   */
-  init: function () {
-    this.jsonInit({
-      "message0": "javascript %1",
-      "args0": [
-        {
-          "type": "input_value",
-          "name": "JS"
-        }
-      ],
-      "category": Blockly.Categories.control,
-      "extensions": ["colours_control", "shape_statement"]
     });
   }
 };

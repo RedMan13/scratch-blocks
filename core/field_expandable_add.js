@@ -19,15 +19,14 @@
  */
 
 /**
- * @fileoverview Checkbox field.  Checked or not checked.
- * @author fraser@google.com (Neil Fraser)
+ * @fileoverview Expandable Add field.
+ * @author SharkPool & JeremyGamer13
  */
 'use strict';
 
 goog.provide('Blockly.FieldExpandableAdd');
 
 goog.require('Blockly.Field');
-
 
 /**
  * Class for a button field.
@@ -59,15 +58,29 @@ Blockly.FieldExpandableAdd.fromJson = function(options) {
 Blockly.FieldExpandableAdd.prototype.CURSOR = 'pointer';
 
 /**
- * Install this checkbox on a block.
+ * Dont serialize this field
+ */
+Blockly.FieldExpandableAdd.prototype.SERIALIZABLE = false;
+
+/**
+ * Icon used by button
+ */
+Blockly.FieldExpandableAdd.prototype.BTN_IMG = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMiIgaGVpZ2h0PSIxMiIgdmlld0JveD0iMCAwIDEyIDEyIj48ZyBzdHJva2Utd2lkdGg9IjAiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCI+PHBhdGggZD0iTTEuOTAzIDguNDRDLjg1MSA4LjQ0IDAgNy41MzYgMCA2LjQxOXYtLjgzN2MwLTEuMTE2Ljg1Mi0yLjAyMSAxLjkwMy0yLjAyMWgxLjY1NlYxLjkwM0MzLjU1OS44NTEgNC40NjUgMCA1LjU4MSAwaC44MzdjMS4xMTYgMCAyLjAyMS44NTIgMi4wMjEgMS45MDN2MS42NTZoMS42NTdjMS4wNTIgMCAxLjkwMy45MDYgMS45MDMgMi4wMjJ2LjgzN2MwIDEuMTE2LS44NTIgMi4wMjEtMS45MDMgMi4wMjFIOC40NDF2MS42NTdjMCAxLjA1Mi0uOTA2IDEuOTAzLTIuMDIyIDEuOTAzaC0uODM3Yy0xLjExNiAwLTIuMDIxLS44NTItMi4wMjEtMS45MDNWOC40NDF6IiBmaWxsLW9wYWNpdHk9Ii4xMDIiIGZpbGw9IiMyNDIwMjEiLz48cGF0aCBkPSJNMi4yMjggNy41OThBMS40MjcgMS40MjcgMCAwIDEgLjgwMSA2LjE3MVY1LjgzYTEuNDI3IDEuNDI3IDAgMCAxIDEuNDI3LTEuNDI3aDIuMTc0VjIuMjI4QTEuNDI3IDEuNDI3IDAgMCAxIDUuODI5LjgwMWguMzQxYTEuNDI3IDEuNDI3IDAgMCAxIDEuNDI3IDEuNDI3djIuMTc0aDIuMTc0YTEuNDI3IDEuNDI3IDAgMCAxIDEuNDI3IDEuNDI3di4zNDFhMS40MjcgMS40MjcgMCAwIDEtMS40MjcgMS40MjdINy41OTh2Mi4xNzRhMS40MjcgMS40MjcgMCAwIDEtMS40MjcgMS40MjdINS44M2ExLjQyNyAxLjQyNyAwIDAgMS0xLjQyNy0xLjQyN1Y3LjU5OHoiIGZpbGw9IiNmZmYiLz48L2c+PC9zdmc+";
+
+/**
+ * Install this button on a block.
  */
 Blockly.FieldExpandableAdd.prototype.init = function() {
   if (this.fieldGroup_) {
-    // Checkbox has already been initialized once.
+    // Button has already been initialized once.
     return;
   }
   Blockly.FieldExpandableAdd.superClass_.init.call(this);
 
+  const ratio = Blockly.BlockSvg.FIELD_HEIGHT / 32;
+  this.size_.width = Blockly.BlockSvg.FIELD_HEIGHT;
+  this.overrideSep = 1;
+  this.boxGroup_ = Blockly.utils.createSvgElement('g', {}, null);
   this.box_ = Blockly.utils.createSvgElement('rect',
     {
       'x': 0,
@@ -76,16 +89,24 @@ Blockly.FieldExpandableAdd.prototype.init = function() {
       'ry': 4,
       'width': this.size_.width,
       'height': this.size_.height,
-      'fill': "#00ff00",
-      'stroke': "rgba(0, 0, 0, 0.25)",
+      'fill': "#00000000",
+      'stroke': "#00000035",
       'cursor': this.CURSOR
-    }
+    },
+    this.boxGroup_
   );
-  this.fieldGroup_.insertBefore(this.box_, this.textElement_);
-  // var textNode = document.createTextNode(this.label_);
-  // textNode.style.fill = "#ffffff";
-  // this.textElement_.append(textNode);
-  // this.fieldGroup_.append(this.textElement_);
+  this.icon_ = Blockly.utils.createSvgElement('image',
+    {
+      'x': 5 * ratio,
+      'y': 5 * ratio,
+      'width': this.size_.width / 1.5,
+      'height': this.size_.height / 1.5,
+      'xlink:href': Blockly.FieldExpandableAdd.prototype.BTN_IMG,
+      'href': Blockly.FieldExpandableAdd.prototype.BTN_IMG,
+    },
+    this.boxGroup_
+  );
+  this.fieldGroup_.insertBefore(this.boxGroup_, this.textElement_);
 };
 
 /**

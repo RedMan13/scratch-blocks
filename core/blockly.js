@@ -34,7 +34,6 @@ goog.require('Blockly.BlockSvg.render');
 goog.require('Blockly.DropDownDiv');
 goog.require('Blockly.Events');
 goog.require('Blockly.FieldAngle');
-goog.require('Blockly.FieldButton');
 goog.require('Blockly.FieldCheckbox');
 goog.require('Blockly.FieldCheckboxOriginal');
 goog.require('Blockly.FieldColour');
@@ -56,6 +55,7 @@ goog.require('Blockly.FieldNumberDropdown');
 goog.require('Blockly.FieldMatrix');
 goog.require('Blockly.FieldVariable');
 goog.require('Blockly.FieldVerticalSeparator');
+goog.require('Blockly.FieldCustom');
 goog.require('Blockly.Generator');
 goog.require('Blockly.Msg');
 goog.require('Blockly.Procedures');
@@ -448,6 +448,24 @@ Blockly.prompt = function(message, defaultValue, callback, _opt_title,
   // opt_title and opt_varType are unused because we only need them to pass
   // information to the scratch-gui, which overwrites this function
   callback(window.prompt(message, defaultValue));
+};
+
+/**
+ * Custom Modal API, overwritten in penguinmod.github.io repo
+ * @param {{title:string, scrollable:boolean?}} config The config for the modal
+ * @param {{content:CSSStyleDeclaration?, overlay:CSSStyleDeclaration?}?} styles Sets styles on parts of the modal. If specified, at least one of the parts should have styles.
+ * @param {Array<{
+ *      name:string,
+ *      role:"ok"|"close"|null,
+ *      class:"ok"|"cancel"|null,
+ *      style:CSSStyleDeclaration?,
+ *      dontClose:boolean?,
+ *      callback:function():void
+ * }>?} buttons Buttons to place onto the modal. `role` makes the button callback run for other types of interactions.
+ * @returns {Promise<HTMLElement>}
+ */
+Blockly.customPrompt = function (config, styles, enterInfo, closeInfo) {
+    throw new Error("Custom Modal API not implemented here");
 };
 
 /**
