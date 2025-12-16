@@ -307,6 +307,8 @@ Blockly.BlockPicker.prototype.init = function() {
     const body = document.createElement('div');
     body.style.width = `${Blockly.BlockPicker.width}px`;
     body.style.height = `${Blockly.BlockPicker.height}px`;
+    body.style.maxHeight = `300px`;
+    body.style.fontSize = '0.75rem';
     body.style.overflow = 'hidden';
     body.style.resize = 'both';
     const searchBox = document.createElement('input');
@@ -424,7 +426,7 @@ Blockly.BlockPicker.prototype.show = function(workspace, atX, atY) {
     host.appendChild(this.content_);
     this.update(this.baseList_);
     Blockly.DropDownDiv.setColour(
-        Blockly.Colours.valueReportBackground,
+        document.body.getAttribute('theme') == 'dark' ? '#1e1e1e' : Blockly.Colours.valueReportBackground,
         Blockly.Colours.valueReportBorder
     );
     Blockly.DropDownDiv.setBoundsElement(workspace.getParentSvg().parentNode);
