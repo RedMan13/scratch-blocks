@@ -120,7 +120,7 @@ Blockly.BlockPicker.deriveQualifiers = function(string) {
     }
     for (let i = 0; i < string.length; i++) {
         if (/^[^a-z+-/*&$#@0-9]/i.test(string[i])) {
-            if (words.at(-1).length) res.words.push('');
+            if (res.words.at(-1).length) res.words.push('');
             continue;
         }
         if (res.mapping.length < res.words.length) res.mapping.push(i);
