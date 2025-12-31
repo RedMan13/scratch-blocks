@@ -12,7 +12,7 @@ goog.require('Blockly.Colours');
  * @prop {string} name
  * @prop {boolean?} configurable defaults to false
  * @prop {boolean?} stack defaults to false
- * @prop {string?} varType the type of variable to check and see it present
+ * @prop {string?} varTypes the type of variable to check and see it present
  * @prop {RegExp|[string,string]?} restrictor either a regexp or a dropdown list of valid values
  * @prop {string?} default what block type should go here normally
  */
@@ -165,7 +165,6 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                     valid = false;
                     break;
                 }
-                if (debugFilter) console.log(indent, 'checking word', word);
                 // word matches, just keep rolling
                 if (typeof word !== 'object' && word === words[j + offset]) continue;
                 // last item, need to simply grab up the last of it as input words
@@ -173,7 +172,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                     args[word.name] = [];
                     const start = j + offset;
                     // a block is a valid input, so check if that would be valid
-                    if (word.type === 'input') {
+                    if (word.type == 'input') {
                         const subVariants = traverseInputsDeep(words.slice(start, words.length), start + subIndex, !word.stack, indent);
                         // a block MUST go here, but no blocks were found
                         if (subVariants.length <= 0 && !word.configurable) {
@@ -185,22 +184,22 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                     }
                     // those words cant be in it, the input is unconfigurable
                     if (!word.configurable) break;
-                    const val = string.slice(mapping[start -1] || 0).trim();
+                    const val = string.slice((mapping[(start + subIndex) -1] + words[start -1]?.length) || 0, mapping[start + words.length + subIndex]).trim();
                     if (word.restrictor instanceof RegExp && !word.restrictor.test(val)) {
-                        if (word.type === 'input') break;
-                        if (debugFilter) console.log(indent, val, 'isnt valid');
+                        if (word.type == 'input') continue;
+                        if (debugFilter) console.log(indent, val, 'isnt valid for', word);
                         valid = false;
                         break;
                     }
                     if (word.restrictor instanceof Array && !word.restrictor.some(function(ent) { return ent[0] === val; })) {
-                        if (word.type === 'input') break;
-                        if (debugFilter) console.log(indent, val, 'isnt valid');
+                        if (word.type == 'input') continue;
+                        if (debugFilter) console.log(indent, val, 'isnt valid for', word);
                         valid = false;
                         break;
                     }
-                    if (typeof word.varType === 'string' && !workspace.getVariablesOfType(word.varType).some(function (variable) { return variable.name === val })) {
-                        if (word.type === 'input') break;
-                        if (debugFilter) console.log(indent, val, 'isnt valid');
+                    if (word.varTypes && word.varTypes.some(function(type) { return workspace.getVariablesOfType(type).some(function (variable) { return variable.name === val }) })) {
+                        if (word.type == 'input') continue;
+                        if (debugFilter) console.log(indent, val, 'isnt valid for', word);
                         valid = false;
                         break;
                     }
@@ -225,7 +224,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                 }
                 args[word.name] = [];
                 // a block is a valid input, so check if that would be valid
-                if (word.type === 'input') {
+                if (word.type == 'input') {
                     const subVariants = traverseInputsDeep(words.slice(start, j + offset +1), start + subIndex, !word.stack, indent);
                     // a block MUST go here, but no blocks were found
                     if (subVariants.length <= 0 && !word.configurable) {
@@ -237,21 +236,21 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                 }
                 // those words cant be in it, the input is unconfigurable
                 if (!word.configurable) continue;
-                const val = string.slice(mapping[start || 0], mapping[j + offset +1]  || string.length).trim();
+                const val = string.slice((mapping[(start + subIndex) -1] + words[start -1]?.length) || 0, mapping[j + offset +1 + subIndex] || string.length).trim();
                 if (word.restrictor instanceof RegExp && !word.restrictor.test(val)) {
-                    if (word.type === 'input') continue;
+                    if (word.type == 'input') continue;
                     if (debugFilter) console.log(indent, val, 'isnt valid for', word);
                     valid = false;
                     break;
                 }
                 if (word.restrictor instanceof Array && !word.restrictor.some(function(ent) { return ent[0] === val; })) {
-                    if (word.type === 'input') continue;
+                    if (word.type == 'input') continue;
                     if (debugFilter) console.log(indent, val, 'isnt valid for', word);
                     valid = false;
                     break;
                 }
-                if (word.varType && workspace.getVariablesOfType(word.varType).some(function (variable) { return variable.name === val })) {
-                    if (word.type === 'input') continue;
+                if (word.varTypes && word.varTypes.some(function(type) { return workspace.getVariablesOfType(type).some(function (variable) { return variable.name === val }) })) {
+                    if (word.type == 'input') continue;
                     if (debugFilter) console.log(indent, val, 'isnt valid for', word);
                     valid = false;
                     break;
@@ -305,16 +304,19 @@ Blockly.BlockPicker.generateFromMatch = function(match) {
             input.textContent = match.args[name] ? match.args[name].value : '';
             continue;
         }
-        const shadow = document.createElement('shadow');
-        shadow.setAttribute('type', match.shadows[name].type);
-        const field = document.createElement('field');
-        field.setAttribute('name', match.shadows[name].field);
-        field.textContent = '';
-        shadow.appendChild(field);
-        input.appendChild(shadow);
-        if (match.args[name] && match.args[name].shadow) {
-            field.textContent = match.args[name].value;
-            continue;
+        // attempt to generate a shadow if the block included one
+        if (name in match.shadows) {
+            const shadow = document.createElement('shadow');
+            shadow.setAttribute('type', match.shadows[name].type);
+            const field = document.createElement('field');
+            field.setAttribute('name', match.shadows[name].field);
+            field.textContent = '';
+            shadow.appendChild(field);
+            input.appendChild(shadow);
+            if (match.args[name] && match.args[name].shadow) {
+                field.textContent = match.args[name].value;
+                continue;
+            }
         }
         if (match.args[name])
             input.appendChild(Blockly.BlockPicker.generateFromMatch(match.args[name]));
@@ -363,7 +365,7 @@ Blockly.BlockPicker.prototype.search = function() {
     }
     // we explicitly do not want to reuse any blocks for or from this
     this.flyout_.emptyRecycleBlocks_();
-    this.update(xmlList);
+    this.update(xmlList, false);
 }
 
 /**
@@ -372,6 +374,7 @@ Blockly.BlockPicker.prototype.search = function() {
  */
 Blockly.BlockPicker.prototype.update = function(nodes, fromToolbox) {
     this.flyout_.show(Blockly.BlockPicker.processNodes(nodes), true);
+    console.log(fromToolbox);
     if (fromToolbox) {
         this.baseList_ = nodes;
         const ids = Object.keys(this.flyout_.workspace_.blockDB_);
@@ -398,32 +401,35 @@ Blockly.BlockPicker.prototype.update = function(nodes, fromToolbox) {
                         name: field.name,
                         configurable: true,
                         // variable type to restrict to
-                        varType: field.variableType_,
+                        varTypes: field.referencesVariables() && (field.getVariableTypes_ ? field.getVariableTypes_() : [field.variableType_]),
                         // restrictor is either regexp or a dropdown list
-                        restrictor: field.restrictor_ || ((field.getOptions && field.variableType_) && field.getOptions())
+                        restrictor: field.restrictor_ || ((field.getOptions && !field.referencesVariables()) && field.getOptions())
                     });
                 }
                 if (input.connection) {
                     var child = input.connection.targetBlock();
+                    // swap to the shadow if we are not it
+                    if (child && !child.isShadow())
+                        child = input.connection.getShadowDom() ? Blockly.Xml.domToBlock(input.connection.getShadowDom(), this.workspace_) : null;
                     // configurable inputs will be treated as fields if sensible to do so
                     words.push({
                         type: 'input',
                         name: input.name,
                         configurable: !!child,
-                        stack: input.type === Blockly.NEXT_STATEMENT,
+                        stack: input.type == Blockly.NEXT_STATEMENT,
                         // variable type to restrict to
-                        varType: child && child.inputList[0] && child.inputList[0].fieldRow[0] && child.inputList[0].fieldRow[0].variableType_,
+                        varTypes: child && child.isShadow() && child.inputList[0] && child.inputList[0].fieldRow[0] && child.inputList[0].fieldRow[0].referencesVariables() && (child.inputList[0].fieldRow[0].getVariableTypes_ ? child.inputList[0].fieldRow[0].getVariableTypes_() : [child.inputList[0].fieldRow[0].variableType_]),
                         // restrictor is either regexp or a dropdown list
-                        restrictor: child && child.inputList[0] && child.inputList[0].fieldRow[0] && (child.inputList[0].fieldRow[0].restrictor_ || (child.inputList[0].fieldRow[0].getOptions && child.inputList[0].fieldRow[0].getOptions())),
-                        default: child && child.type,
-                        defaultName: child && child.inputList[0] && child.inputList[0].fieldRow[0] && child.inputList[0].fieldRow[0].name
+                        restrictor: child && child.isShadow() && child.inputList[0] && child.inputList[0].fieldRow[0] && (child.inputList[0].fieldRow[0].restrictor_ || (child.inputList[0].fieldRow[0].getOptions && child.inputList[0].fieldRow[0].getOptions())),
+                        default: child && child.isShadow() && child.type,
+                        defaultName: child && child.isShadow() && child.inputList[0] && child.inputList[0].fieldRow[0] && child.inputList[0].fieldRow[0].name
                     });
                 }
             }
             this.index_.push({
                 type: block.type,
                 types: Object.fromEntries(words.reduce((c,v) => typeof v === 'object' ? (c.push([v.name, v.type]), c) : c, [])),
-                shadows: Object.fromEntries(words.reduce((c,v) => typeof v.default === 'string' ? (c.push([v.name, { type: v.default, field: v.defaultName }]), c) : c, [])),
+                shadows: Object.fromEntries(words.reduce((c,v) => typeof v.default === 'string' ? (c.push([v.name, { get type() { return v.default }, set type(v) { debugger; console.log(new Error()) }, field: v.defaultName }]), c) : c, [])),
                 words,
                 isReporter: !!block.outputConnection
             });
@@ -446,7 +452,7 @@ Blockly.BlockPicker.prototype.show = function(workspace, atX, atY) {
     this.search_.value = '';
     if (this.content_.parentNode) this.content_.remove();
     host.appendChild(this.content_);
-    this.update(this.baseList_);
+    this.update(this.baseList_, false);
     Blockly.DropDownDiv.setColour(
         document.body.getAttribute('theme') == 'dark' ? '#1e1e1e' : Blockly.Colours.valueReportBackground,
         Blockly.Colours.valueReportBorder
