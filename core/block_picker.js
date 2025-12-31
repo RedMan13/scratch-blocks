@@ -184,7 +184,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                     }
                     // those words cant be in it, the input is unconfigurable
                     if (!word.configurable) break;
-                    const val = string.slice((mapping[(start + subIndex) -1] + words[start -1]?.length) || 0, mapping[start + words.length + subIndex]).trim();
+                    const val = string.slice((mapping[(start + subIndex) -1] + (words[start -1] ? words[start -1].length : 0)) || 0, mapping[start + words.length + subIndex]).trim();
                     if (word.restrictor instanceof RegExp && !word.restrictor.test(val)) {
                         if (word.type == 'input') continue;
                         if (debugFilter) console.log(indent, val, 'isnt valid for', word);
@@ -236,7 +236,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                 }
                 // those words cant be in it, the input is unconfigurable
                 if (!word.configurable) continue;
-                const val = string.slice((mapping[(start + subIndex) -1] + words[start -1]?.length) || 0, mapping[j + offset +1 + subIndex] || string.length).trim();
+                const val = string.slice((mapping[(start + subIndex) -1] + (words[start -1] ? words[start -1].length : 0)) || 0, mapping[j + offset +1 + subIndex] || string.length).trim();
                 if (word.restrictor instanceof RegExp && !word.restrictor.test(val)) {
                     if (word.type == 'input') continue;
                     if (debugFilter) console.log(indent, val, 'isnt valid for', word);
