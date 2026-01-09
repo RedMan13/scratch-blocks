@@ -64,6 +64,8 @@ Blockly.BlockPicker = function(workspace) {
     this.index_ = [];
     /** @type {HTMLElement[]} */
     this.baseList_ = [];
+    this.x_ = 0;
+    this.y_ = 0;
 }
 Blockly.BlockPicker.width = 175;
 Blockly.BlockPicker.height = 300;
@@ -284,6 +286,16 @@ Blockly.BlockPicker.generateFromMatch = function(match) {
     }
     return block;
 }
+Blockly.BlockPicker.prototype._onResize = function() {
+    if (!Blockly.DropDownDiv.boundsElement_) return;
+    var metrics = Blockly.DropDownDiv.getPositionMetrics(this.x_, this.y_, this.x_, this.y_);
+    // Update arrow CSS
+    Blockly.DropDownDiv.arrow_.style.transform = 'translate(' +
+        metrics.arrowX + 'px,' + metrics.arrowY + 'px) rotate(45deg)';
+    Blockly.DropDownDiv.arrow_.setAttribute('class',
+        metrics.arrowAtTop ? 'blocklyDropDownArrow arrowTop' : 'blocklyDropDownArrow arrowBottom');
+    this.flyout_.position();
+}
 /**
  * Initializes the block picker so it can be used
  */
@@ -291,10 +303,13 @@ Blockly.BlockPicker.prototype.init = function() {
     const body = document.createElement('div');
     body.style.width = `${Blockly.BlockPicker.width}px`;
     body.style.height = `${Blockly.BlockPicker.height}px`;
-    body.style.maxHeight = `300px`;
+    // body.style.maxHeight = `300px`;
+    body.style.paddingBottom = '12px';
     body.style.fontSize = '0.75rem';
     body.style.overflow = 'hidden';
     body.style.resize = 'both';
+    const observer = new ResizeObserver(this._onResize.bind(this));
+    observer.observe(body);
     const searchBox = document.createElement('input');
     body.appendChild(searchBox);
     searchBox.style.boxSizing = 'border-box';
@@ -405,6 +420,8 @@ Blockly.BlockPicker.prototype.update = function(nodes, fromToolbox) {
  * @param {number} atY 
  */
 Blockly.BlockPicker.prototype.show = function(workspace, atX, atY) {
+    this.x_ = atX;
+    this.y_ = atY;
     Blockly.DropDownDiv.hideWithoutAnimation();
     Blockly.DropDownDiv.clearContent();
     const host = Blockly.DropDownDiv.getContentDiv();
@@ -419,7 +436,12 @@ Blockly.BlockPicker.prototype.show = function(workspace, atX, atY) {
         Blockly.Colours.valueReportBorder
     );
     Blockly.DropDownDiv.setBoundsElement(workspace.getParentSvg().parentNode);
-    Blockly.DropDownDiv.show(this, atX, atY, atX, atY, true);
+    Blockly.DropDownDiv.show(this, atX, atY, atX, atY, function() {
+        delete Blockly.DropDownDiv.content_.style.maxHeight;
+        delete Blockly.DropDownDiv.arrow_.style.display;
+    }, true);
+    Blockly.DropDownDiv.content_.style.maxHeight = '100%';
+    Blockly.DropDownDiv.arrow_.style.display = 'none';
     this.flyout_.position();
     this.flyout_.scrollToStart();
 }
