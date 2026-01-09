@@ -116,19 +116,22 @@ Blockly.BlockPicker.deriveQualifiers = function(string) {
     const res = {
         words: [''],
         text: string,
-        mapping: []
+        mapping: [[0]]
     }
     for (let i = 0; i < string.length; i++) {
         if (/^[^a-z+-/*&$#@0-9]/i.test(string[i])) {
-            if (res.words.at(-1).length) res.words.push('');
+            if (res.words.at(-1).length) {
+                res.words.push('');
+                res.mapping.push([i]);
+            }
             continue;
         }
-        if (res.mapping.length < res.words.length) res.mapping.push(i);
+        if (!res.words.at(-1).length) res.mapping.at(-1).push(i);
         res.words[res.words.length -1] += string[i];
     }
     return res;
 }
-const debugFilter = true;
+const debugFilter = false;
 /**
  * Gets a list of the most likely matches for a given string of words
  * @param {string[]} words 
@@ -140,7 +143,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
     // while also allowing for ambiguity, such as set x to y. this could be
     // `set [x v] to (y)`, `set x to (y)`, `set [x v] to [y]`, or `set x to [y]`
     // and all should be available in the search results.
-    function traverseInputsDeep(words, subIndex, isInput) {
+    function traverseInputsDeep(words, mapping, isInput) {
         if (cache[words]) {
             if (debugFilter) console.log(indent, 'using cached results for', words);
             return cache[words];
@@ -183,7 +186,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                 args[word.name] = [];
                 // a block is a valid input, so check if that would be valid
                 if (word.type == 'input') {
-                    const subVariants = traverseInputsDeep(words.slice(start, j + offset +1), start + subIndex +1, !word.stack, indent);
+                    const subVariants = traverseInputsDeep(words.slice(start, j + offset +1), mapping.slice(start, j + offset +1), !word.stack, indent);
                     // a block MUST go here, but no blocks were found
                     if (subVariants.length <= 0 && !word.configurable) {
                         if (debugFilter) console.log(indent, words.slice(start, j + offset +1), 'has no valid blocks');
@@ -194,7 +197,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                 }
                 // those words cant be in it, the input is unconfigurable
                 if (!word.configurable) continue;
-                const val = string.slice((mapping[(start + subIndex) -1] + (words[start -1] ? words[start -1].length : 0)) || 0, mapping[j + offset + subIndex] || string.length).trim();
+                const val = string.slice((mapping[start] && mapping[start][0]) || 0, (mapping[j + offset +1] && mapping[j + offset +1][1]) || string.length).trim();
                 if (word.restrictor instanceof RegExp && !word.restrictor.test(val)) {
                     if (word.type == 'input') continue;
                     if (debugFilter) console.log(indent, val, 'isnt valid for', word);
@@ -249,7 +252,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
         if (debugFilter) console.log(indent, 'Total matches', matches);
         return matches
     }
-    return traverseInputsDeep(words, 0, null);
+    return traverseInputsDeep(words, mapping, 0, null);
 }
 Blockly.BlockPicker.generateFromMatch = function(match) {
     const block = document.createElement('block');
