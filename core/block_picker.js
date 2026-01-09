@@ -128,7 +128,7 @@ Blockly.BlockPicker.deriveQualifiers = function(string) {
     }
     return res;
 }
-const debugFilter = false;
+const debugFilter = true;
 /**
  * Gets a list of the most likely matches for a given string of words
  * @param {string[]} words 
@@ -167,49 +167,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                 }
                 // word matches, just keep rolling
                 if (typeof word !== 'object' && word === words[j + offset]) continue;
-                // last item, need to simply grab up the last of it as input words
-                if (j === block.words.length -1) {
-                    args[word.name] = [];
-                    const start = j + offset;
-                    // a block is a valid input, so check if that would be valid
-                    if (word.type == 'input') {
-                        const subVariants = traverseInputsDeep(words.slice(start, words.length), start + subIndex, !word.stack, indent);
-                        // a block MUST go here, but no blocks were found
-                        if (subVariants.length <= 0 && !word.configurable) {
-                            if (debugFilter) console.log(indent, words.slice(start, words.length), 'has no valid blocks');
-                            valid = false;
-                            break;
-                        }
-                        args[word.name].push.apply(args[word.name], subVariants);
-                    }
-                    // those words cant be in it, the input is unconfigurable
-                    if (!word.configurable) break;
-                    const val = string.slice((mapping[(start + subIndex) -1] + (words[start -1] ? words[start -1].length : 0)) || 0, mapping[start + words.length + subIndex]).trim();
-                    if (word.restrictor instanceof RegExp && !word.restrictor.test(val)) {
-                        if (word.type == 'input') continue;
-                        if (debugFilter) console.log(indent, val, 'isnt valid for', word);
-                        valid = false;
-                        break;
-                    }
-                    if (word.restrictor instanceof Array && !word.restrictor.some(function(ent) { return ent[0] === val; })) {
-                        if (word.type == 'input') continue;
-                        if (debugFilter) console.log(indent, val, 'isnt valid for', word);
-                        valid = false;
-                        break;
-                    }
-                    if (word.varTypes && word.varTypes.some(function(type) { return workspace.getVariablesOfType(type).some(function (variable) { return variable.name === val }) })) {
-                        if (word.type == 'input') continue;
-                        if (debugFilter) console.log(indent, val, 'isnt valid for', word);
-                        valid = false;
-                        break;
-                    }
-                    args[word.name].push({
-                        shadow: true,
-                        value: val
-                    });
-                    break;
-                }
-                // otherwise, we need to find the ending match with a lazy search
+                // we need to find the ending match with a lazy search
                 const start = j + offset;
                 while (block.words[j +1] !== words[j + offset] && (j + (offset -1)) < words.length)
                     offset++;
@@ -217,7 +175,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                 // first-argument matches invalidate if the next word isnt present
                 // this way blocks like (() + ()), (() of ()), and (()) that dont
                 // make any real sense wont flood the results
-                if (j === 0 && (j + offset +1) >= words.length) {
+                if (j !== (block.words.length -1) && (j + offset +1) >= words.length ) {
                     if (debugFilter) console.log(indent, 'Ran out of usable words');
                     valid = false;
                     break;
@@ -225,7 +183,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                 args[word.name] = [];
                 // a block is a valid input, so check if that would be valid
                 if (word.type == 'input') {
-                    const subVariants = traverseInputsDeep(words.slice(start, j + offset +1), start + subIndex, !word.stack, indent);
+                    const subVariants = traverseInputsDeep(words.slice(start, j + offset +1), start + subIndex +1, !word.stack, indent);
                     // a block MUST go here, but no blocks were found
                     if (subVariants.length <= 0 && !word.configurable) {
                         if (debugFilter) console.log(indent, words.slice(start, j + offset +1), 'has no valid blocks');
@@ -236,7 +194,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                 }
                 // those words cant be in it, the input is unconfigurable
                 if (!word.configurable) continue;
-                const val = string.slice((mapping[(start + subIndex) -1] + (words[start -1] ? words[start -1].length : 0)) || 0, mapping[j + offset +1 + subIndex] || string.length).trim();
+                const val = string.slice((mapping[(start + subIndex) -1] + (words[start -1] ? words[start -1].length : 0)) || 0, mapping[j + offset + subIndex] || string.length).trim();
                 if (word.restrictor instanceof RegExp && !word.restrictor.test(val)) {
                     if (word.type == 'input') continue;
                     if (debugFilter) console.log(indent, val, 'isnt valid for', word);
@@ -249,7 +207,7 @@ Blockly.BlockPicker.getBestMatches = function(words, index, string, mapping, wor
                     valid = false;
                     break;
                 }
-                if (word.varTypes && word.varTypes.some(function(type) { return workspace.getVariablesOfType(type).some(function (variable) { return variable.name === val }) })) {
+                if (word.varTypes && !word.varTypes.some(function(type) { return workspace.getVariablesOfType(type).some(function (variable) { console.log(variable.name, val); return variable.name === val }) })) {
                     if (word.type == 'input') continue;
                     if (debugFilter) console.log(indent, val, 'isnt valid for', word);
                     valid = false;
